@@ -5,36 +5,37 @@
 <br/><br/>
 </p>
 
-This repository contains a bunch of examples for dealing with the `reflect` package.
-Mainly, for decoding/encoding stuff, and calling functions dynamically.  
-Most of the examples were taken from projects I worked on in the past, and some from projects I am currently working on.  
+这个仓库包含了`reflect`包的示例
+主要用于编码解码和动态调用函数  
+这些例子大多来自于我过去从事的项目，也有一些来自我目前正在从事的项目
+您还将在示例中找到有用的注释，这将帮助您理解代码。
+有些是我的，有些是从godoc网站上下载的。
 
-You will also find informative comments in the examples, that will help you to understand the code.
-some of them are mine, and some of them were taken from the godoc website.
-
-If you want to contribute to this repository, don't hesitate to create a PR.
-
-The awesome gopher in the logo was taken from [@egonelbre/gophers](https://github.com/egonelbre/gophers).
+如果你想贡献这个仓库，不要犹豫创建一个PR吧
+gopher的logo来自[@egonelbre/gophers](https://github.com/egonelbre/gophers).
 
 
-### Table Of Content
-- [Read struct tags](#read-struct-tags)
-- [Get and set struct fields](#get-and-set-struct-fields)
-- [Fill slice with values](#fill-slice-with-strings-without-knowing-its-type-use-case-decoder)
-- [Set a value of a number](#set-a-value-of-a-number-use-case-decoder)
-- [Decode key-value pairs into map](#decode-key-value-pairs-into-map)
-- [Decode key-value pairs into struct](#decode-key-value-pairs-into-struct)
-- [Encode struct into key-value pairs](#encode-struct-into-key-value-pairs)
-- [Check if the underlying type implements an interface](#check-if-the-underlying-type-implements-an-interface)
-- [Wrap a `reflect.Value` with pointer (`T` => `*T`)](#wrap-a-reflectvalue-with-pointer-t--t)
-- [Function calls](#function-calls)
-  - [Call to a method without prameters, and without return value](#call-method-without-prameters-and-without-return-value)
-  - [Call to a function with list of arguments, and validate return values](#call-function-with-list-of-arguments-and-validate-return-values)
-  - [Call to a function dynamically. similar to the template/text package](#call-to-a-function-dynamically-similar-to-the-templatetext-package)
-  - [Call to a function with variadic parameter](#call-function-with-variadic-parameter)
-  - [Create function at runtime](#create-function-at-runtime)
+### 目录
+- [读取struct的tag](#读取struct的tag)
+- [获取并设置struct字段](#获取并设置struct字段)
+- [使用字符串填充切片，而不知道它的类型](#使用字符串填充切片，而不知道它的类型)
+- [用值填充切片](#用值填充切片)
+- [设置一个数字的值](#设置一个数字的值)
+- [将键值对解码为map](#将键值对解码为map)
+- [解码键值对到struct](#解码键值对到struct)
+- [将结构体编码为键值对](#将结构体编码为键值对)
+- [检查底层类型是否实现接口](#检查底层类型是否实现接口)
+- [使用指针包装`reflect.Value` (`T` => `*T`)](#使用指针包装`reflect.Value` (`T` => `*T`))
+- [函数调用](#函数调用)
+  - [调用没有参数的方法，也没有返回值](#调用没有参数的方法，也没有返回值)
+  - [调用含有参数的方法](#调用含有参数的方法)
+  - [调用带有参数的函数，验证返回值](#调用带有参数的函数，验证返回值)
+  - [动态调用一个函数，类似于template/text包](#调用一个函数，类似于template/text包)
+  - [调用可变参数的函数](#调用可变参数的函数)
+  - [运行时创建一个函数](#运行时创建一个函数)
 
-### Read struct tags
+
+### 读取struct的tag
 
 ```go
 package main
@@ -53,9 +54,8 @@ type User struct {
 
 func main() {
 	var u interface{} = User{}
-	// TypeOf returns the reflection Type that represents the dynamic type of u.
+	// TypeOf返回代表u的动态类型的反射Type
 	t := reflect.TypeOf(u)
-	// Kind returns the specific kind of this type. 
 	if t.Kind() != reflect.Struct {
 		return
 	}
@@ -64,10 +64,18 @@ func main() {
 		fmt.Println(f.Tag.Get("mcl"), f.Tag.Get("default"))
 	}
 }
+//输出  
+// email   
+// name   
+// age   
+// github a8m 
 ```
-Calling to `Kind()` can returns one of [this list](https://golang.org/pkg/reflect/#Kind).
 
-### Get and set struct fields
+ 
+调用`Kind()`返回的是这个列表中定义的值[Kind()](https://golang.org/pkg/reflect/#Kind).  
+[Playground](https://play.studygolang.com/p/yF7vdNiNPmh)
+
+### 获取和设置结构体字段
 ```go
 package main
 
@@ -85,22 +93,28 @@ type User struct {
 
 func main() {
 	u := &User{Name: "Ariel Mashraki"}
-	// Elem returns the value that the pointer u points to.
+	// Elem返回指向u的指针
 	v := reflect.ValueOf(u).Elem()
 	f := v.FieldByName("Github")
-	// make sure that this field is defined, and can be changed.
+	// 确保这个字段被定义，并且可以被设置
 	if !f.IsValid() || !f.CanSet() {
 		return
 	}
 	if f.Kind() != reflect.String || f.String() != "" {
 		return
 	}
+	// 设置字段的值
 	f.SetString("a8m")
-	fmt.Printf("Github username was changed to: %q\n", u.Github)
+	fmt.Printf("Github username was changed to: %q\n",u.Github)
 }
+//输出  
+//Github username was changed to: "a8m"
 ```
 
-### Fill slice with strings, without knowing its type. Use case: decoder.
+[Playground](https://play.studygolang.com/p/OCvqjWEtTZa)
+
+### 使用字符串填充切片，而不知道它的类型
+
 ```go
 package main
 
@@ -116,25 +130,28 @@ func main() {
 		b []interface{}
 		c []io.Writer
 	)
-	fmt.Println(fill(&a), a) // pass
-	fmt.Println(fill(&b), b) // pass
-	fmt.Println(fill(&c), c) // fail
+	fmt.Println(fill(&a), a) // 通过
+	fmt.Println(fill(&b), b) // 通过
+	fmt.Println(fill(&c), c) // 失败
+
 }
 
 func fill(i interface{}) error {
 	v := reflect.ValueOf(i)
+	// 判断是否为指针
 	if v.Kind() != reflect.Ptr {
 		return fmt.Errorf("non-pointer %v", v.Type())
 	}
-	// get the value that the pointer v points to.
+	// 获取指针v指向的值
 	v = v.Elem()
+	// 判断值的类型是否为slice
 	if v.Kind() != reflect.Slice {
-		return fmt.Errorf("can't fill non-slice value")
+		return fmt.Errorf("can not fill non-slice value")
 	}
 	v.Set(reflect.MakeSlice(v.Type(), 3, 3))
-	// validate the type of the slice. see below.
+	// 验证切片的类型
 	if !canAssign(v.Index(0)) {
-		return fmt.Errorf("can't assign string to slice elements")
+		return fmt.Errorf("can not assign string to slice elements")
 	}
 	for i, w := range []string{"foo", "bar", "baz"} {
 		v.Index(i).Set(reflect.ValueOf(w))
@@ -142,13 +159,21 @@ func fill(i interface{}) error {
 	return nil
 }
 
-// we accept strings, or empty interfaces.
+// 接收一个string或一个空的interface
 func canAssign(v reflect.Value) bool {
 	return v.Kind() == reflect.String || (v.Kind() == reflect.Interface && v.NumMethod() == 0)
 }
-```
 
-### Set a value of a number. Use case: decoder. 
+// 输出
+//<nil> [foo bar baz]   
+//<nil> [foo bar baz]          
+//can not assign string to slice elements [<nil> <nil> <nil>]
+```
+[Playground](https://play.studygolang.com/p/RCvfjdYA1K8)
+
+ 
+ 
+### 设置一个数字的值
 ```go
 package main
 
@@ -198,13 +223,21 @@ func fill(i interface{}) error {
 		}
 		v.SetFloat(n)
 	default:
-		return fmt.Errorf("can't assign value to a non-number type")
+			return fmt.Errorf("can't assign value to a non-number type")
 	}
 	return nil
 }
-```
 
-### Decode key-value pairs into map
+// 输出
+//can not assign value due to int8 overflow 0
+//<nil> 255
+//<nil> 255
+//<nil> 255
+//can't assign value to a non-number type 
+```
+[Playground](https://play.studygolang.com/p/BPKoEp_CcVD)
+
+### 将键值对解码为map
 
 ```go
 package main
@@ -225,26 +258,25 @@ func main() {
 		m4 map[bool]string
 	)
 	s := "1=foo,2=bar,3=baz"
+
 	fmt.Println(decodeMap(s, &m0), m0) // pass
 	fmt.Println(decodeMap(s, &m1), m1) // pass
 	fmt.Println(decodeMap(s, &m2), m2) // pass
 	fmt.Println(decodeMap(s, &m3), m3) // pass
 	fmt.Println(decodeMap(s, &m4), m4) // fail
 }
-
 func decodeMap(s string, i interface{}) error {
 	v := reflect.ValueOf(i)
 	if v.Kind() != reflect.Ptr {
 		return fmt.Errorf("non-pointer %v", v.Type())
 	}
-	// get the value that the pointer v points to.
+	// 获取指针v指向的值
 	v = v.Elem()
 	t := v.Type()
-	// allocate a new map, if v is nil. see: m2, m3, m4.
+	// 如果为nil 分配新的map m2,m3,m4
 	if v.IsNil() {
 		v.Set(reflect.MakeMap(t))
 	}
-	// assume that the input is valid.
 	for _, kv := range strings.Split(s, ",") {
 		s := strings.Split(kv, "=")
 		n, err := strconv.Atoi(s[0])
@@ -252,24 +284,35 @@ func decodeMap(s string, i interface{}) error {
 			return fmt.Errorf("failed to parse number: %v", err)
 		}
 		k, e := reflect.ValueOf(n), reflect.ValueOf(s[1])
-		// get the type of the key.
+		// 获取map key的类型 int
 		kt := t.Key()
+
 		if !k.Type().ConvertibleTo(kt) {
-			return fmt.Errorf("can't convert key to type %v", kt.Kind())
+			return fmt.Errorf("can not convert key to type %v", kt.Kind())
 		}
 		k = k.Convert(kt)
-		// get the element type.
+		// 获取map value的类型
 		et := t.Elem()
+
 		if et.Kind() != v.Kind() && !e.Type().ConvertibleTo(et) {
-			return fmt.Errorf("can't assign value to type %v", kt.Kind())
+			return fmt.Errorf("can not assign value to type %v", kt.Kind())
 		}
 		v.SetMapIndex(k, e.Convert(et))
+
 	}
 	return nil
-}
-```
 
-### Decode key-value pairs into struct
+}
+// 输出
+//<nil> map[1:foo 2:bar 3:baz]
+//<nil> map[1:foo 2:bar 3:baz]
+//<nil> map[1:foo 2:bar 3:baz]
+//<nil> map[1:foo 2:bar 3:baz]
+// can not convert key to type bool map[]
+```
+[Playground](https://play.studygolang.com/p/zA5tqcVpf8m)
+
+### 解码键值对到struct
 ```go
 package main
 
@@ -291,38 +334,45 @@ func main() {
 		v1 *User
 		v2 = new(User)
 		v3 struct{ Name string }
-		s  = "Name=Ariel,Github=a8m"
 	)
-	fmt.Println(decode(s, &v0), v0) // pass
-	fmt.Println(decode(s, v1), v1)  // fail
-	fmt.Println(decode(s, v2), v2)  // pass
-	fmt.Println(decode(s, v3), v3)  // fail
-	fmt.Println(decode(s, &v3), v3) // pass
-}
+	s := "Name=Ariel,Github=a8m"
 
-func decode(s string, i interface{}) error {
+	fmt.Println(decodeStruct(s, &v0), v0) // pass
+	fmt.Println(decodeStruct(s, v1), v1)  // fail
+	fmt.Println(decodeStruct(s, v2), v2)  // pass
+	fmt.Println(decodeStruct(s, v3), v3)  // fail
+	fmt.Println(decodeStruct(s, &v3), v3) // pass
+}
+func decodeStruct(s string, i interface{}) error {
 	v := reflect.ValueOf(i)
+	// 判断是否是指针或者为nil
 	if v.Kind() != reflect.Ptr || v.IsNil() {
 		return fmt.Errorf("decode requires non-nil pointer")
 	}
-	// get the value that the pointer v points to.
+	// 获取指针v指向的值
 	v = v.Elem()
-	// assume that the input is valid.
 	for _, kv := range strings.Split(s, ",") {
 		s := strings.Split(kv, "=")
 		f := v.FieldByName(s[0])
-		// make sure that this field is defined, and can be changed.
+		//确保字段被定义 并且可以被修改
 		if !f.IsValid() || !f.CanSet() {
 			continue
 		}
-		// assume all the fields are type string.
 		f.SetString(s[1])
 	}
 	return nil
 }
-```
 
-### Encode struct into key-value pairs
+// 输出
+//<nil> {Ariel a8m }
+//decode requires non-nil pointer <nil>
+//<nil> &{Ariel a8m }
+//decode requires non-nil pointer {}
+//<nil> {Ariel}
+```
+[Playground](https://play.studygolang.com/p/PQIkMHbODf_P)
+
+### 将结构体编码为键值对
 ```go
 package main
 
@@ -356,8 +406,7 @@ func main() {
 	fmt.Println(encode(w))
 }
 
-// this example supports only structs, and assume their
-// fields are type string.
+// 只支持struct 并且字段类型是string
 func encode(i interface{}) (string, error) {
 	v := reflect.ValueOf(i)
 	t := v.Type()
@@ -367,19 +416,20 @@ func encode(i interface{}) (string, error) {
 	var s []string
 	for i := 0; i < t.NumField(); i++ {
 		f := t.Field(i)
-		// skip unexported fields. from godoc:
-		// PkgPath is the package path that qualifies a lower case (unexported)
-		// field name. It is empty for upper case (exported) field names.
+		//跳过未导出的字段。从godoc:
+		// PkgPath是限定小写(未导出)的包路径
+		//字段名。它对于大写(导出)字段名是空的。
 		if f.PkgPath != "" {
 			continue
 		}
 		fv := v.Field(i)
 		key, omit := readTag(f)
-		// skip empty values when "omitempty" set.
+		// 如果值为空并且设置了omitempty就跳过
 		if omit && fv.String() == "" {
 			continue
 		}
 		s = append(s, fmt.Sprintf("%s=%s", key, fv.String()))
+
 	}
 	return strings.Join(s, ","), nil
 }
@@ -390,15 +440,22 @@ func readTag(f reflect.StructField) (string, bool) {
 		return f.Name, false
 	}
 	opts := strings.Split(val, ",")
-	omit := false
+	var omit bool
+
 	if len(opts) == 2 {
 		omit = opts[1] == "omitempty"
 	}
 	return opts[0], omit
 }
-```
 
-### Check if the underlying type implements an interface
+//输出
+//name=Ariel,github=a8m <nil>
+//A=foo,B=bar,C=baz <nil>
+//type ptr is not supported
+```
+[Playground](https://play.studygolang.com/p/iMf3Pc07kLj)
+
+### 检查底层类型是否实现接口
 ```go
 package main
 
@@ -407,40 +464,44 @@ import (
 	"reflect"
 )
 
-type Marshaler interface {
-	MarshalKV() (string, error)
-}
-
 type User struct {
 	Email   string `kv:"email,omitempty"`
 	Name    string `kv:"name,omitempty"`
 	Github  string `kv:"github,omitempty"`
 	private string
 }
+type Marshaler interface {
+	MarshalKV() (string, error)
+}
 
-func (u User) MarshalKV() (string, error) {
+func (u *User) MarshalKV() (string, error) {
 	return fmt.Sprintf("name=%s,email=%s,github=%s", u.Name, u.Email, u.Github), nil
 }
 
 func main() {
-	fmt.Println(encode(User{"boring", "Ariel", "a8m", ""}))
+	
+	fmt.Println(encode(User{"boring", "Ariel", "a8m", ""}))	// 未实现接口
 	fmt.Println(encode(&User{Github: "posener", Name: "Eyal", Email: "boring"}))
 }
 
-var marshalerType = reflect.TypeOf(new(Marshaler)).Elem()
+var marshalertype = reflect.TypeOf(new(Marshaler)).Elem()
 
 func encode(i interface{}) (string, error) {
 	t := reflect.TypeOf(i)
-	if !t.Implements(marshalerType) {
+	if !t.Implements(marshalertype) {
 		return "", fmt.Errorf("encode only supports structs that implement the Marshaler interface")
 	}
 	m, _ := reflect.ValueOf(i).Interface().(Marshaler)
 	return m.MarshalKV()
 }
+
+// 输出
+// encode only supports structs that implement the Marshaler interface
+//name=Eyal,email=boring,github=posener <nil>
 ```
+[Playground](https://play.studygolang.com/p/qbJctpjXaX4)
 
-### Wrap a `reflect.Value` with pointer (`T` => `*T`)
-
+### 使用指针包装`reflect.Value` (`T` => `*T`)
 ```go
 package main
 
@@ -473,12 +534,12 @@ func ptr(v reflect.Value) reflect.Value {
 	return pv
 }
 ```
-[Playground](https://play.golang.org/p/4C5O3dPayn7)
+[Playground](https://play.studygolang.com/p/JJ8ii8_TQHm)
 
 
-### Function calls
+### 函数调用
 
-#### Call method without prameters, and without return value
+#### 调用没有参数的方法，也没有返回值
 ```go
 package main
 
@@ -489,20 +550,50 @@ import (
 
 type A struct{}
 
-func (A) Hello() { fmt.Println("World") }
-
+func (a A) Hello() {
+	fmt.Println("hello word")
+}
 func main() {
-	// ValueOf returns a new Value, which is the reflection interface to a Go value.
+	// ValueOf返回一个新值，这是Go的反射接口
 	v := reflect.ValueOf(A{})
 	m := v.MethodByName("Hello")
 	if m.Kind() != reflect.Func {
 		return
 	}
 	m.Call(nil)
+
 }
 ```
+[Playground](https://play.studygolang.com/p/xK5g7fBPmm_o)
 
-#### Call function with list of arguments, and validate return values
+#### 调用含有参数的方法
+```go
+package main
+
+import (
+	"fmt"
+	"reflect"
+)
+
+type A struct{}
+
+func (a A) Hello(word string) {
+	fmt.Println("hello", word)
+}
+func main() {
+	// ValueOf返回一个新值，这是Go的反射接口
+	v := reflect.ValueOf(A{})
+	m := v.MethodByName("Hello")
+	if m.Kind() != reflect.Func {
+		return
+	}
+	fmt.Println(m.Type().In(0))
+	m.Call([]reflect.Value{reflect.ValueOf("word")})
+}
+```
+[Playground](https://play.studygolang.com/p/fWPhftoI1Cy)
+
+#### 调用带有参数的函数，验证返回值
 ```go
 package main
 
@@ -512,31 +603,37 @@ import (
 )
 
 func Add(a, b int) int { return a + b }
-
 func main() {
 	v := reflect.ValueOf(Add)
 	if v.Kind() != reflect.Func {
 		return
 	}
+
 	t := v.Type()
 	argv := make([]reflect.Value, t.NumIn())
 	for i := range argv {
-		// validate the type of parameter "i".
+		// 验证参数i的类型
 		if t.In(i).Kind() != reflect.Int {
 			return
 		}
 		argv[i] = reflect.ValueOf(i)
 	}
-	// note that, len(result) == t.NumOut()
+	// 调用函数
+
 	result := v.Call(argv)
+
 	if len(result) != 1 || result[0].Kind() != reflect.Int {
 		return
 	}
 	fmt.Println(result[0].Int())
-}
-```
 
-#### Call to a function dynamically. similar to the template/text package
+}
+// 输出
+// 1
+```
+[Playground](https://play.studygolang.com/p/vsLqLHlu5nv)
+
+#### 动态调用一个函数，类似于template/text包
 ```go
 package main
 
@@ -611,7 +708,7 @@ func parseArgs(s string) ([]string, string) {
 }
 ```
 
-#### Call function with variadic parameter
+#### 调用可变参数的函数
 ```go
 package main
 
@@ -635,20 +732,29 @@ func main() {
 		return
 	}
 	t := v.Type()
+	// 获取参数个数
 	argc := t.NumIn()
+	
+	// 判断是否为可变参数
 	if t.IsVariadic() {
 		argc += rand.Intn(10)
 	}
+	
 	argv := make([]reflect.Value, argc)
 	for i := range argv {
 		argv[i] = reflect.ValueOf(i)
 	}
+	// 调用函数 0 1 2 3 
 	result := v.Call(argv)
-	fmt.Println(result[0].Int()) // assume that t.NumOut() > 0 tested above.
+	fmt.Println(result[0].Int())
 }
-```
 
-#### Create function at runtime
+// 输出
+// 6
+```
+[Playground](https://play.studygolang.com/p/cJXMxfzymBH)
+
+#### 运行时创建一个函数
 ```go
 package main
 
@@ -673,3 +779,4 @@ func main() {
 	fmt.Println(fn(2,3))
 }
 ```
+[Playground](https://play.studygolang.com/p/oSvEk8QzTTL)
