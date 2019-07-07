@@ -18,7 +18,7 @@ gopher的logo来自[@egonelbre/gophers](https://github.com/egonelbre/gophers).
 ### 目录
 - [读取struct的tag](#读取struct的tag)
 - [获取并设置struct字段](#获取并设置struct字段)
-- [使用字符串填充切片而不知道它的类型](#使用字符串填充切片而不知道它的类型)
+- [使用字符串填充切片](#使用字符串填充切片)
 - [用值填充切片](#用值填充切片)
 - [设置一个数字的值](#设置一个数字的值)
 - [将键值对解码为map](#将键值对解码为map)
@@ -27,10 +27,10 @@ gopher的logo来自[@egonelbre/gophers](https://github.com/egonelbre/gophers).
 - [检查底层类型是否实现接口](#检查底层类型是否实现接口)
 - [使用指针包装`reflect.Value`(`T`=>`*T`)](#使用指针包装`reflect.Value`(`T`=>`*T`))
 - [函数调用](#函数调用)
-  - [调用没有参数的方法也没有返回值](#调用没有参数的方法也没有返回值)
+  - [调用没有参数的方法](#调用没有参数的方法)
   - [调用含有参数的方法](#调用含有参数的方法)
   - [调用带有参数的函数验证返回值](#调用带有参数的函数验证返回值)
-  - [动态调用一个函数类似于template/text包](#调用一个函数类似于template/text包)
+  - [动态调用一个函数类似于template.text包](#调用一个函数类似于template.text包)
   - [调用可变参数的函数](#调用可变参数的函数)
   - [运行时创建一个函数](#运行时创建一个函数)
 
@@ -113,7 +113,7 @@ func main() {
 
 [Playground](https://play.studygolang.com/p/OCvqjWEtTZa)
 
-### 使用字符串填充切片而不知道它的类型
+### 使用字符串填充切片
 
 ```go
 package main
@@ -539,7 +539,7 @@ func ptr(v reflect.Value) reflect.Value {
 
 ### 函数调用
 
-#### 调用没有参数的方法也没有返回值
+#### 调用没有参数的方法
 ```go
 package main
 
@@ -590,6 +590,10 @@ func main() {
 	fmt.Println(m.Type().In(0))
 	m.Call([]reflect.Value{reflect.ValueOf("word")})
 }
+//输出
+//string
+//hello word
+// Hello
 ```
 [Playground](https://play.studygolang.com/p/fWPhftoI1Cy)
 
@@ -633,7 +637,7 @@ func main() {
 ```
 [Playground](https://play.studygolang.com/p/vsLqLHlu5nv)
 
-#### 动态调用一个函数类似于template/text包
+#### 动态调用一个函数类似于template.text包
 ```go
 package main
 
