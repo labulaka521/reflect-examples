@@ -17,7 +17,7 @@ gopher的logo来自[@egonelbre/gophers](https://github.com/egonelbre/gophers).
 
 ### 目录
 - [读取struct的tag](#读取struct的tag)
-- [获取并设置struct字段](#获取并设置struct字段)
+- [获取和设置结构体字段](#获取并设置struct字段)
 - [使用字符串填充切片](#使用字符串填充切片)
 - [用值填充切片](#用值填充切片)
 - [设置一个数字的值](#设置一个数字的值)
